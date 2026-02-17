@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ChatbotService {
@@ -24,6 +25,12 @@ class ChatbotService {
 
     final history = await _fetchRecentHistory(limit: 8);
 
+    if (_apiEndpoint.isEmpty) {
+      debugPrint(
+        'ChatbotService: FITGENIE_CHAT_ENDPOINT is empty, using fallback reply.',
+      );
+    }
+
     if (_apiEndpoint.isNotEmpty) {
       try {
         final token = await FirebaseAuth.instance.currentUser?.getIdToken();
@@ -41,8 +48,11 @@ class ChatbotService {
           await _storeMessage(reply, isUser: false);
           return reply;
         }
+        debugPrint(
+          'ChatbotService: backend status=${response.statusCode}, body=${response.body}',
+        );
       } catch (_) {
-        // Fall back to local response below.
+        debugPrint('ChatbotService: backend request failed, using fallback.');
       }
     }
 
