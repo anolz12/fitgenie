@@ -12,7 +12,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.post("/chat", async (req, res) => {
-  const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY || process.env.API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: "Missing API key on server" });
   }
@@ -27,82 +27,58 @@ app.post("/chat", async (req, res) => {
     .filter((item) => item && item.content)
     .slice(-8)
     .map((item) => ({
-      role: item.role === "assistant" ? "model" : "user",
-      parts: [{ text: String(item.content) }],
+      role: item.role === "assistant" ? "assistant" : "user",
+      content: String(item.content),
     }));
 
-  const body = {
-    systemInstruction: {
-      role: "user",
-      parts: [
+  try {
+    const model = process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini";
+    const body = {
+      model,
+      messages: [
         {
-          text:
+          role: "system",
+          content:
             "You are FitGenie AI, a concise fitness and wellness coach. " +
             "Give practical guidance and avoid medical diagnosis.",
         },
+        ...normalizedHistory,
+        { role: "user", content: message },
       ],
-    },
-    contents: [
-      ...normalizedHistory,
-      { role: "user", parts: [{ text: message }] },
-    ],
-    generationConfig: {
       temperature: 0.6,
-      topP: 0.9,
-      maxOutputTokens: 350,
-    },
-  };
+      max_tokens: 350,
+    };
 
-  try {
-    const candidateModels = [
-      "gemini-2.0-flash",
-      "gemini-1.5-flash-002",
-      "gemini-1.5-pro-002",
-    ];
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "HTTP-Referer":
+          process.env.OPENROUTER_REFERER || "https://fitgenie-g82z.onrender.com",
+        "X-Title": process.env.OPENROUTER_APP_NAME || "FitGenie",
+      },
+      body: JSON.stringify(body),
+    });
 
-    let data = null;
-    let lastErrorText = "";
-
-    for (const model of candidateModels) {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        }
-      );
-
-      if (response.ok) {
-        data = await response.json();
-        break;
-      }
-
-      lastErrorText = await response.text();
-      if (response.status === 429) {
-        return res.status(200).json({
-          reply:
-            "I am temporarily rate-limited right now. Please try again in about a minute.",
-        });
-      }
-      if (response.status !== 404) {
-        return res
-          .status(502)
-          .json({ error: "Gemini request failed", detail: lastErrorText });
-      }
+    if (response.status === 429) {
+      return res.status(200).json({
+        reply:
+          "I am temporarily rate-limited right now. Please try again in about a minute.",
+      });
     }
 
-    if (!data) {
+    const data = await response.json();
+
+    if (!response.ok) {
       return res
         .status(502)
-        .json({ error: "No supported Gemini model found", detail: lastErrorText });
+        .json({ error: "OpenRouter request failed", detail: JSON.stringify(data) });
     }
 
     const reply =
-      data?.candidates?.[0]?.content?.parts
-        ?.map((p) => p.text || "")
-        .join("")
-        .trim() || "I could not generate a response right now.";
+      data?.choices?.[0]?.message?.content?.trim() ||
+      "I could not generate a response right now.";
 
     return res.status(200).json({ reply });
   } catch (e) {
