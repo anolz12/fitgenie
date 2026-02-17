@@ -1,0 +1,25 @@
+{
+  "functions": {
+    "source": "functions"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "fitgenie-anolal-51d45",
+          "appId": "1:793336851674:android:8e01fcd77bcfd6d164c9e3",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "fitgenie-anolal-51d45",
+          "configurations": {
+            "android": "1:793336851674:android:8e01fcd77bcfd6d164c9e3",
+            "windows": "1:793336851674:web:0c1fe4038da3be4664c9e3"
+          }
+        }
+      }
+    }
+  }
+}

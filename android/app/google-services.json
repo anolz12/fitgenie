@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "793336851674",
+    "project_id": "fitgenie-anolal-51d45",
+    "storage_bucket": "fitgenie-anolal-51d45.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:793336851674:android:8e01fcd77bcfd6d164c9e3",
+        "android_client_info": {
+          "package_name": "com.example.fitgenie"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBwEK_rUVj38ffc2ZeN0p16yGKG9OQPnt0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:793336851674:android:4310c73e92817b9b64c9e3",
+        "android_client_info": {
+          "package_name": "fitgenie.com"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBwEK_rUVj38ffc2ZeN0p16yGKG9OQPnt0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
