@@ -19,6 +19,7 @@ import 'services/workout_service.dart';
 import 'services/health_service.dart';
 import 'services/notification_service.dart';
 import 'services/recovery_plan_service.dart';
+import 'services/ai_content_service.dart';
 import 'utils/beep_player.dart';
 
 Future<void> main() async {
@@ -2045,11 +2046,36 @@ class WorkoutsPage extends StatefulWidget {
 
 class _WorkoutsPageState extends State<WorkoutsPage> {
   String? _selectedCategory;
+  bool _isGeneratingAi = false;
 
   @override
   void initState() {
     super.initState();
     WorkoutService.instance.ensureLibrary();
+  }
+
+  Future<void> _generateAiWorkouts() async {
+    setState(() => _isGeneratingAi = true);
+    final generated = await AIContentService.instance.generateWorkouts(
+      goal: 'General fitness',
+      equipment: 'Mixed',
+      timePerSession: '30 min',
+      fitnessLevel: 'Intermediate',
+    );
+    for (final workout in generated) {
+      await WorkoutService.instance.addWorkout(workout);
+    }
+    if (!mounted) return;
+    setState(() => _isGeneratingAi = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          generated.isEmpty
+              ? 'AI workout generation unavailable right now.'
+              : 'Added ${generated.length} AI workouts.',
+        ),
+      ),
+    );
   }
 
   _WorkoutMeta _metaFor(Workout workout) {
@@ -2171,7 +2197,32 @@ class _WorkoutsPageState extends State<WorkoutsPage> {
         return ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
           children: [
-            Text('Workouts', style: Theme.of(context).textTheme.headlineMedium),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Workouts',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                ),
+                FilledButton.icon(
+                  onPressed: _isGeneratingAi ? null : _generateAiWorkouts,
+                  icon: _isGeneratingAi
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.auto_awesome, size: 16),
+                  label: Text(
+                    _isGeneratingAi ? 'Generating...' : 'AI Generate',
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 10),
             Text(
               'Personalized plans and AI-guided sessions.',
@@ -3145,8 +3196,36 @@ class _ConsistencyBars extends StatelessWidget {
   }
 }
 
-class WellnessPage extends StatelessWidget {
+class WellnessPage extends StatefulWidget {
   const WellnessPage({super.key});
+
+  @override
+  State<WellnessPage> createState() => _WellnessPageState();
+}
+
+class _WellnessPageState extends State<WellnessPage> {
+  bool _isGeneratingAi = false;
+
+  Future<void> _generateAiWellness() async {
+    setState(() => _isGeneratingAi = true);
+    final generated = await AIContentService.instance.generateWellness(
+      goal: 'Stress relief and better sleep',
+    );
+    for (final session in generated) {
+      await WellnessService.instance.addSession(session);
+    }
+    if (!mounted) return;
+    setState(() => _isGeneratingAi = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          generated.isEmpty
+              ? 'AI wellness generation unavailable right now.'
+              : 'Added ${generated.length} AI wellness sessions.',
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -3154,12 +3233,32 @@ class WellnessPage extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
       children: [
-        Text(
-          'Guided Wellness',
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: AppTheme.onSurface,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Guided Wellness',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.onSurface,
+                ),
+              ),
+            ),
+            FilledButton.icon(
+              onPressed: _isGeneratingAi ? null : _generateAiWellness,
+              icon: _isGeneratingAi
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.auto_awesome, size: 16),
+              label: Text(_isGeneratingAi ? 'Generating...' : 'AI Generate'),
+            ),
+          ],
         ),
         const SizedBox(height: 6),
         Text(

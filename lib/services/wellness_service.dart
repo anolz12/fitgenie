@@ -15,9 +15,11 @@ class WellnessService {
   Stream<List<WellnessSession>> streamSessions() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const Stream.empty();
-    return _collection(user.uid)
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => WellnessSession.fromMap(doc.data(), doc.id)).toList());
+    return _collection(user.uid).snapshots().map(
+      (snapshot) => snapshot.docs
+          .map((doc) => WellnessSession.fromMap(doc.data(), doc.id))
+          .toList(),
+    );
   }
 
   Future<void> seedIfEmpty() async {
@@ -30,5 +32,11 @@ class WellnessService {
     for (final s in samples) {
       await ref.add(s.toMap());
     }
+  }
+
+  Future<void> addSession(WellnessSession session) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    await _collection(user.uid).add(session.toMap());
   }
 }
