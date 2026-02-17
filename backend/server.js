@@ -79,6 +79,12 @@ app.post("/chat", async (req, res) => {
       }
 
       lastErrorText = await response.text();
+      if (response.status === 429) {
+        return res.status(200).json({
+          reply:
+            "I am temporarily rate-limited right now. Please try again in about a minute.",
+        });
+      }
       if (response.status !== 404) {
         return res
           .status(502)
