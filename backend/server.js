@@ -54,21 +54,44 @@ app.post("/chat", async (req, res) => {
   };
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      }
-    );
+    const candidateModels = [
+      "gemini-2.0-flash",
+      "gemini-1.5-flash-002",
+      "gemini-1.5-pro-002",
+    ];
 
-    if (!response.ok) {
-      const text = await response.text();
-      return res.status(502).json({ error: "Gemini request failed", detail: text });
+    let data = null;
+    let lastErrorText = "";
+
+    for (const model of candidateModels) {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (response.ok) {
+        data = await response.json();
+        break;
+      }
+
+      lastErrorText = await response.text();
+      if (response.status !== 404) {
+        return res
+          .status(502)
+          .json({ error: "Gemini request failed", detail: lastErrorText });
+      }
     }
 
-    const data = await response.json();
+    if (!data) {
+      return res
+        .status(502)
+        .json({ error: "No supported Gemini model found", detail: lastErrorText });
+    }
+
     const reply =
       data?.candidates?.[0]?.content?.parts
         ?.map((p) => p.text || "")
