@@ -39,4 +39,17 @@ class WellnessService {
     if (user == null) return;
     await _collection(user.uid).add(session.toMap());
   }
+
+  Future<bool> addSessionIfNotDuplicate(WellnessSession session) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+    final ref = _collection(user.uid);
+    final snap = await ref
+        .where('title', isEqualTo: session.title)
+        .limit(1)
+        .get();
+    if (snap.docs.isNotEmpty) return false;
+    await ref.add(session.toMap());
+    return true;
+  }
 }

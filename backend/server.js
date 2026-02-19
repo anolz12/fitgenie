@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const admin = require("firebase-admin");
 
 const app = express();
 const port = process.env.PORT || 8080;
@@ -10,6 +11,61 @@ app.use(express.json({ limit: "1mb" }));
 app.get("/health", (_req, res) => {
   res.status(200).json({ ok: true });
 });
+
+let canVerifyFirebaseTokens = false;
+
+function initFirebaseAuthVerifier() {
+  if (admin.apps.length > 0) {
+    canVerifyFirebaseTokens = true;
+    return;
+  }
+
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+
+  try {
+    if (projectId && clientEmail && privateKey) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId,
+          clientEmail,
+          privateKey,
+        }),
+      });
+      canVerifyFirebaseTokens = true;
+      return;
+    }
+
+    // Works on GCP with default credentials; on Render usually explicit cert is needed.
+    admin.initializeApp();
+    canVerifyFirebaseTokens = true;
+  } catch (error) {
+    canVerifyFirebaseTokens = false;
+    console.error("Firebase auth verifier init failed:", error?.message || error);
+  }
+}
+
+initFirebaseAuthVerifier();
+
+async function requireFirebaseUser(req, res, next) {
+  const authHeader = req.get("Authorization") || "";
+  const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  if (!idToken) {
+    return res.status(401).json({ error: "Missing auth token" });
+  }
+  if (!canVerifyFirebaseTokens) {
+    return res.status(503).json({
+      error: "Auth verifier not configured on server",
+    });
+  }
+  try {
+    req.user = await admin.auth().verifyIdToken(idToken);
+    return next();
+  } catch (_) {
+    return res.status(401).json({ error: "Invalid auth token" });
+  }
+}
 
 function getApiKey() {
   return process.env.OPENROUTER_API_KEY || process.env.API_KEY;
@@ -85,7 +141,7 @@ function tryParseJsonText(text) {
   return null;
 }
 
-app.post("/chat", async (req, res) => {
+app.post("/chat", requireFirebaseUser, async (req, res) => {
   const apiKey = getApiKey();
   if (!apiKey) return res.status(500).json({ error: "Missing API key on server" });
 
@@ -132,7 +188,7 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-app.post("/generate-workouts", async (req, res) => {
+app.post("/generate-workouts", requireFirebaseUser, async (req, res) => {
   const apiKey = getApiKey();
   if (!apiKey) return res.status(500).json({ error: "Missing API key on server" });
 
@@ -191,7 +247,7 @@ app.post("/generate-workouts", async (req, res) => {
   }
 });
 
-app.post("/generate-wellness", async (req, res) => {
+app.post("/generate-wellness", requireFirebaseUser, async (req, res) => {
   const apiKey = getApiKey();
   if (!apiKey) return res.status(500).json({ error: "Missing API key on server" });
 

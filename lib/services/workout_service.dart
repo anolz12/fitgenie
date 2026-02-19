@@ -213,6 +213,24 @@ class WorkoutService {
     await _collection(user.uid).add(workout.toMap());
   }
 
+  Future<bool> addWorkoutIfNotDuplicate(Workout workout) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+    final ref = _collection(user.uid);
+    final snap = await ref
+        .where('title', isEqualTo: workout.title)
+        .limit(10)
+        .get();
+    final exists = snap.docs.any((doc) {
+      final data = doc.data();
+      final focus = (data['focus'] as String? ?? '').toLowerCase();
+      return focus == workout.focus.toLowerCase();
+    });
+    if (exists) return false;
+    await ref.add(workout.toMap());
+    return true;
+  }
+
   Future<void> updateWorkout(Workout workout) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;

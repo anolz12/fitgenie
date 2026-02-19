@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -24,6 +25,14 @@ class AIContentService {
     return base.replace(path: path.startsWith('/') ? path : '/$path');
   }
 
+  Future<Map<String, String>> _headers() async {
+    final token = await FirebaseAuth.instance.currentUser?.getIdToken();
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
   Future<WorkoutPlan?> generateWorkoutPlan({
     required String goal,
     required String equipment,
@@ -32,9 +41,10 @@ class AIContentService {
   }) async {
     final uri = _endpointFor('/generate-workouts');
     if (uri == null) return null;
+    final headers = await _headers();
     final response = await _client.post(
       uri,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode({
         'goal': goal,
         'equipment': equipment,
@@ -69,9 +79,10 @@ class AIContentService {
   }) async {
     final uri = _endpointFor('/generate-workouts');
     if (uri == null) return [];
+    final headers = await _headers();
     final response = await _client.post(
       uri,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode({
         'goal': goal,
         'equipment': equipment,
@@ -101,9 +112,10 @@ class AIContentService {
   }) async {
     final uri = _endpointFor('/generate-wellness');
     if (uri == null) return [];
+    final headers = await _headers();
     final response = await _client.post(
       uri,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode({'goal': goal}),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) return [];

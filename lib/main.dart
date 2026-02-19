@@ -2062,8 +2062,12 @@ class _WorkoutsPageState extends State<WorkoutsPage> {
       timePerSession: '30 min',
       fitnessLevel: 'Intermediate',
     );
+    var inserted = 0;
     for (final workout in generated) {
-      await WorkoutService.instance.addWorkout(workout);
+      final added = await WorkoutService.instance.addWorkoutIfNotDuplicate(
+        workout,
+      );
+      if (added) inserted++;
     }
     if (!mounted) return;
     setState(() => _isGeneratingAi = false);
@@ -2072,7 +2076,9 @@ class _WorkoutsPageState extends State<WorkoutsPage> {
         content: Text(
           generated.isEmpty
               ? 'AI workout generation unavailable right now.'
-              : 'Added ${generated.length} AI workouts.',
+              : (inserted == 0
+                    ? 'No new AI workouts (duplicates skipped).'
+                    : 'Added $inserted AI workouts.'),
         ),
       ),
     );
@@ -2843,7 +2849,11 @@ class _ProgressHeader extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Icon(Icons.arrow_back, color: Colors.black87),
+            IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.black87),
+              onPressed: () => Navigator.of(context).maybePop(),
+              tooltip: 'Back',
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -3211,8 +3221,12 @@ class _WellnessPageState extends State<WellnessPage> {
     final generated = await AIContentService.instance.generateWellness(
       goal: 'Stress relief and better sleep',
     );
+    var inserted = 0;
     for (final session in generated) {
-      await WellnessService.instance.addSession(session);
+      final added = await WellnessService.instance.addSessionIfNotDuplicate(
+        session,
+      );
+      if (added) inserted++;
     }
     if (!mounted) return;
     setState(() => _isGeneratingAi = false);
@@ -3221,7 +3235,9 @@ class _WellnessPageState extends State<WellnessPage> {
         content: Text(
           generated.isEmpty
               ? 'AI wellness generation unavailable right now.'
-              : 'Added ${generated.length} AI wellness sessions.',
+              : (inserted == 0
+                    ? 'No new AI wellness sessions (duplicates skipped).'
+                    : 'Added $inserted AI wellness sessions.'),
         ),
       ),
     );
