@@ -22,6 +22,21 @@ class HealthService {
 
   final Health _health = Health();
 
+  double _numericValue(HealthValue value) {
+    if (value is NumericHealthValue) {
+      return value.numericValue.toDouble();
+    }
+    try {
+      final dynamic dynamicValue = value;
+      if (dynamicValue?.numericValue is num) {
+        return (dynamicValue.numericValue as num).toDouble();
+      }
+    } catch (_) {
+      // Ignore unexpected plugin value shapes.
+    }
+    return 0;
+  }
+
   Future<bool> requestPermissions() async {
     if (kIsWeb) return false;
     final types = [HealthDataType.STEPS, HealthDataType.ACTIVE_ENERGY_BURNED];
@@ -77,10 +92,10 @@ class HealthService {
     for (final point in data) {
       switch (point.type) {
         case HealthDataType.STEPS:
-          steps += (point.value as num).toInt();
+          steps += _numericValue(point.value).toInt();
           break;
         case HealthDataType.ACTIVE_ENERGY_BURNED:
-          energy += (point.value as num).toDouble(); // typically in kJ
+          energy += _numericValue(point.value); // typically in kJ on Android
           break;
         default:
           break;

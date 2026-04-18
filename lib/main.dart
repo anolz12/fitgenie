@@ -11,7 +11,6 @@ import 'screens/ai_workout_plan_screen.dart';
 import 'theme/app_theme.dart';
 import 'services/auth_service.dart';
 import 'services/chatbot_service.dart';
-import 'services/seed_service.dart';
 import 'services/user_service.dart';
 import 'services/wellness_service.dart';
 import 'services/stats_service.dart';
@@ -570,12 +569,6 @@ class _MainShellState extends State<MainShell> {
   ];
 
   @override
-  void initState() {
-    super.initState();
-    SeedService.instance.run();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
@@ -1065,13 +1058,13 @@ class DashboardPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 const _UpcomingTile(
-                  title: 'Strength · Lower Body',
-                  subtitle: 'Tomorrow · 45 min',
+                  title: 'Strength - Lower Body',
+                  subtitle: 'Tomorrow - 45 min',
                   icon: Icons.fitness_center,
                 ),
                 const _UpcomingTile(
                   title: 'Mindful Flow',
-                  subtitle: 'Wed · 12 min',
+                  subtitle: 'Wed - 12 min',
                   icon: Icons.self_improvement,
                 ),
                 const SizedBox(height: 18),
@@ -1189,32 +1182,39 @@ class _DailySummaryCard extends StatelessWidget {
       decoration: AppTheme.gradientCardDecoration(
         colors: [AppTheme.primary, AppTheme.primaryDark],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final stats = [
+            _DailyStat(label: 'Steps', value: summary.steps),
+            _DailyStat(label: 'Calories', value: summary.calories),
+            _DailyStat(label: 'Active min', value: summary.activeMinutes),
+          ];
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.today, color: Colors.white70, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Daily summary',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(color: Colors.white70),
+              Row(
+                children: [
+                  const Icon(Icons.today, color: Colors.white70, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Daily summary',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(color: Colors.white70),
+                  ),
+                ],
               ),
+              const SizedBox(height: 16),
+              if (constraints.maxWidth < 360)
+                Wrap(spacing: 20, runSpacing: 12, children: stats)
+              else
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: stats,
+                ),
             ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _DailyStat(label: 'Steps', value: summary.steps),
-              const SizedBox(width: 24),
-              _DailyStat(label: 'Calories', value: summary.calories),
-              const SizedBox(width: 24),
-              _DailyStat(label: 'Active min', value: summary.activeMinutes),
-            ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -1289,18 +1289,19 @@ class _WeeklyChartCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 56,
+            height: 76,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: List.generate(7, (i) {
-                final h = (calorieBars.length > i ? calorieBars[i] : 0.0) * 56;
+                final h = (calorieBars.length > i ? calorieBars[i] : 0.0) * 46;
                 return Column(
                   mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
                       width: 24,
-                      height: h.clamp(4.0, 56.0),
+                      height: h.clamp(4.0, 46.0),
                       decoration: BoxDecoration(
                         color: AppTheme.primary.withOpacity(0.7),
                         borderRadius: BorderRadius.circular(6),
@@ -1335,74 +1336,89 @@ class _SmartStatRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: AppTheme.cardDecoration(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.local_fire_department,
-                      size: 20,
-                      color: AppTheme.accentAmber,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Calories burned',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+    final leftCard = Container(
+      padding: const EdgeInsets.all(16),
+      decoration: AppTheme.cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.local_fire_department,
+                size: 20,
+                color: AppTheme.accentAmber,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Calories burned',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.onSurfaceVariant,
+                  ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  caloriesBurned,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: AppTheme.cardDecoration(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.trending_up, size: 20, color: AppTheme.primary),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Workout consistency',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  workoutConsistency,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                ),
-              ],
-            ),
+          const SizedBox(height: 6),
+          Text(
+            caloriesBurned,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
-        ),
-      ],
+        ],
+      ),
+    );
+    final rightCard = Container(
+      padding: const EdgeInsets.all(16),
+      decoration: AppTheme.cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.trending_up, size: 20, color: AppTheme.primary),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Workout consistency',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            workoutConsistency,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 380) {
+          return Column(
+            children: [leftCard, const SizedBox(height: 12), rightCard],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: leftCard),
+            const SizedBox(width: 12),
+            Expanded(child: rightCard),
+          ],
+        );
+      },
     );
   }
 }
@@ -1427,9 +1443,9 @@ class _AIPlanCtaCard extends StatelessWidget {
               ).copyWith(
                 border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
               ),
-          child: Row(
-            children: [
-              Container(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final icon = Container(
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
@@ -1441,34 +1457,64 @@ class _AIPlanCtaCard extends StatelessWidget {
                   color: AppTheme.primary,
                   size: 26,
                 ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
+              );
+              final textBlock = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AI-Personalized Workout Plan',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Goal · Equipment · Time · Level · Adaptive weekly',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              );
+
+              if (constraints.maxWidth < 380) {
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'AI-Personalized Workout Plan',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Row(
+                      children: [
+                        icon,
+                        const Spacer(),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          size: 16,
+                          color: AppTheme.primary,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Goal · Equipment · Time · Level · Adaptive weekly',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.onSurfaceVariant,
-                      ),
-                    ),
+                    const SizedBox(height: 12),
+                    textBlock,
                   ],
-                ),
-              ),
-              const Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: AppTheme.primary,
-              ),
-            ],
+                );
+              }
+
+              return Row(
+                children: [
+                  icon,
+                  const SizedBox(width: 14),
+                  Expanded(child: textBlock),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: AppTheme.primary,
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -3331,7 +3377,7 @@ class _WellnessPageState extends State<WellnessPage> {
         const SizedBox(height: 28),
         _WellnessSectionTitle(
           icon: Icons.self_improvement,
-          title: 'Meditation (2–10 min)',
+          title: 'Meditation (2-10 min)',
           subtitle: 'Short sessions for focus & calm',
         ),
         const SizedBox(height: 12),
@@ -4993,39 +5039,39 @@ class _MindsetCoachScript extends StatelessWidget {
           Text('Mindset Coach', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 10),
           _ScriptBlock(
-            title: 'Minute 0:00-0:30 Ã¢â‚¬â€ Arrival & Grounding',
+            title: 'Minute 0:00-0:30 - Arrival & Grounding',
             body:
                 'Welcome. Find a comfortable position and gently close your eyes if that feels right. '
                 'Take a slow breath in through your nose and out through your mouth. '
                 'You are here. Nothing else matters for the next few minutes.',
           ),
           _ScriptBlock(
-            title: 'Minute 0:30-1:30 Ã¢â‚¬â€ Breath Control',
+            title: 'Minute 0:30-1:30 - Breath Control',
             body:
                 'Breathe in for 4. Hold for 2. Breathe out for 6. '
                 'Let your shoulders soften as you exhale. Repeat this breathing pattern twice more.',
           ),
           _ScriptBlock(
-            title: 'Minute 1:30-2:30 Ã¢â‚¬â€ Body Awareness',
+            title: 'Minute 1:30-2:30 - Body Awareness',
             body:
-                'Bring your attention to your body. Notice where you are holding tension Ã¢â‚¬â€ '
+                'Bring your attention to your body. Notice where you are holding tension - '
                 'your jaw, shoulders, or chest. With each exhale, imagine that tension gently melting away.',
           ),
           _ScriptBlock(
-            title: 'Minute 2:30-3:45 Ã¢â‚¬â€ Mindset Reframe',
+            title: 'Minute 2:30-3:45 - Mindset Reframe',
             body:
                 'Thoughts may come and go. That is normal. You do not need to fight them. '
                 'Just notice them and let them pass. Remind yourself: '
                 '"I am capable. I am improving. I am in control of my effort."',
           ),
           _ScriptBlock(
-            title: 'Minute 3:45-4:30 Ã¢â‚¬â€ Confidence Boost',
+            title: 'Minute 3:45-4:30 - Confidence Boost',
             body:
-                'Visualize yourself succeeding today Ã¢â‚¬â€ staying focused, calm, and confident. '
+                'Visualize yourself succeeding today - staying focused, calm, and confident. '
                 'See yourself handling challenges with clarity. Feel that confidence settle into your body.',
           ),
           _ScriptBlock(
-            title: 'Minute 4:30-5:00 Ã¢â‚¬â€ Closing',
+            title: 'Minute 4:30-5:00 - Closing',
             body:
                 'Take one final deep breath in and out. When you are ready, gently open your eyes. '
                 'Carry this calm mindset with you into the rest of your day.',
@@ -5060,34 +5106,34 @@ class _NeckShoulderReliefScript extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _ScriptBlock(
-            title: 'Minute 0:00-1:00 â€” Ground & Breathe',
+            title: 'Minute 0:00-1:00 - Ground & Breathe',
             body:
                 'Inhale slowly through your nose for 4 seconds. Exhale through your mouth for 6 seconds. '
                 'Drop your shoulders away from your ears. Imagine tension melting down your back. '
-                'Repeat this breathing 3â€“4 times.',
+                'Repeat this breathing 3-4 times.',
           ),
           _ScriptBlock(
-            title: 'Minute 1:00-2:00 â€” Neck Side Release',
+            title: 'Minute 1:00-2:00 - Neck Side Release',
             body:
                 'Gently tilt your head right ear toward right shoulder. Hold for 10 seconds, breathing deeply. '
                 'Come back to center. Tilt left ear toward left shoulder. Hold for 10 seconds. '
-                'Keep shoulders relaxed â€” no lifting.',
+                'Keep shoulders relaxed - no lifting.',
           ),
           _ScriptBlock(
-            title: 'Minute 2:00-3:00 â€” Neck Forward & Back Stretch',
+            title: 'Minute 2:00-3:00 - Neck Forward & Back Stretch',
             body:
                 'Slowly lower your chin toward your chest. Feel the stretch along the back of your neck. '
                 'Hold for 10 seconds. Gently lift your head and look slightly upward (no forcing). '
                 'Hold for 5 seconds. Repeat once.',
           ),
           _ScriptBlock(
-            title: 'Minute 3:00-4:00 â€” Shoulder Rolls & Release',
+            title: 'Minute 3:00-4:00 - Shoulder Rolls & Release',
             body:
                 'Roll both shoulders up, back, and down. Slow and controlled, 5 circles. '
                 'Then reverse direction for 5 circles. Let your arms hang loose.',
           ),
           _ScriptBlock(
-            title: 'Minute 4:00-5:00 â€” Upper Trap Stretch + Reset',
+            title: 'Minute 4:00-5:00 - Upper Trap Stretch + Reset',
             body:
                 'Place your right hand on the left side of your head. Gently guide your ear toward your shoulder. '
                 'Hold 10 seconds. Switch sides. Finish with one deep breath in and a long sigh out.',
